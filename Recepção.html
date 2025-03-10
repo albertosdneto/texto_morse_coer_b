@@ -1,0 +1,344 @@
+<!--
+    Autor: Alberto Senna Dias Neto
+    Data: 09/03/2025 (DD/MM/YYYY)
+    Projeto: Transmissor de Código Morse para COER Classe B
+    Descrição: Este é um projeto de demonstração para criar um transmissor que converte texto em sons,
+               utilizando as frequências e tempos do Código Morse.
+    Observação: Este código contém um script para gerar sinais acústicos.
+    Versão: 1.0
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transmissor em Código Morse</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        textarea {
+            width: 80%;
+            height: 100px;
+            font-size: 1.2em;
+            transition: visibility 0.3s ease, opacity 0.3s ease;
+        }
+
+        textarea.blocked {
+            visibility: hidden;
+            opacity: 0;
+            height: 0;
+        }
+
+        label, input, button, select {
+            font-size: 1.2em;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        .frequency-control, .unit-duration-control, .text-options-control, .delay-control {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+<h1>Transmissor de Código Morse</h1>
+<div class="frequency-control">
+    <label for="frequency">Frequência: </label>
+    <input
+            type="range"
+            id="frequency"
+            min="500"
+            max="900"
+            value="700"
+            step="10"
+            oninput="updateFrequencyLabel()">
+    <span id="frequencyLabel">700Hz</span>
+</div>
+<div class="unit-duration-control">
+    <label for="unitDuration">Duração da Unidade: </label>
+    <select id="unitDuration">
+        <option value="240" selected>5ppm</option>
+        <option value="120">10ppm</option>
+        <option value="80">15ppm</option>
+    </select>
+</div>
+<div class="delay-control">
+    <label for="delayOption">Tempo de Espera: </label>
+    <select id="delayOption">
+        <option value="3000" selected>3s</option>
+        <option value="5000">5s</option>
+        <option value="VVV">VVV</option>
+    </select>
+</div>
+
+<!-- Select de opções construídas dinamicamente -->
+<div class="text-options-control">
+    <label for="textOptions">Escolha uma opção de texto: </label>
+    <select id="textOptions" onchange="updateTextInput()">
+        <option value="" selected>Entre texto</option>
+        <!-- As outras opções serão inseridas dinamicamente via JS -->
+    </select>
+</div>
+
+
+<textarea id="textInput" placeholder="Digite aqui sua mensagem"></textarea>
+<br>
+<div>
+    <input type="checkbox" id="hideText">
+    <label for="hideText">Ocultar</label>
+</div>
+<button onclick="playMorse()">Tocar Código Morse</button>
+<button onclick="stopMorse()" style="background-color: red; color: white;">Parar</button>
+<script>
+    const morseCode = {
+        'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..',
+        'E': '.', 'F': '..-.', 'G': '--.', 'H': '....',
+        'I': '..', 'J': '.---', 'K': '-.-', 'L': '.-..',
+        'M': '--', 'N': '-.', 'O': '---', 'P': '.--.',
+        'Q': '--.-', 'R': '.-.', 'S': '...', 'T': '-',
+        'U': '..-', 'V': '...-', 'W': '.--', 'X': '-..-',
+        'Y': '-.--', 'Z': '--..',
+        '1': '.----', '2': '..---', '3': '...--', '4': '....-', '5': '.....',
+        '6': '-....', '7': '--...', '8': '---..', '9': '----.', '0': '-----',
+        ' ': ' '
+    };
+    let stopTransmission = false;
+    let timeouts = [];
+
+    function updateFrequencyLabel() {
+        const frequency = document.getElementById('frequency').value;
+        document.getElementById('frequencyLabel').innerText = `${frequency}Hz`;
+    }
+
+    function textToMorse(text) {
+        return text.toUpperCase().split('').map(char => morseCode[char] || '').join(' ');
+    }
+
+    function playMorse() {
+        const textElement = document.getElementById('textInput');
+        const hideText = document.getElementById('hideText').checked;
+        const text = textElement.value;
+        const frequency = document.getElementById('frequency').value;
+        const unitDuration = parseInt(document.getElementById('unitDuration').value);
+        const delayOption = document.getElementById('delayOption').value;
+        const morse = textToMorse(text);
+
+        if (!morse.trim()) {
+            alert('Por favor, digite uma mensagem.');
+            return;
+        }
+
+        stopMorse();
+        stopTransmission = false;
+
+        if (hideText) {
+            textElement.classList.add('blocked');
+        }
+
+        let delay = 0;
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const playSound = (duration) => {
+            if (stopTransmission) return;
+            const oscillator = audioCtx.createOscillator();
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+            const gainNode = audioCtx.createGain();
+            gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+            setTimeout(() => {
+                const endTime = audioCtx.currentTime + 0.1;
+                gainNode.gain.exponentialRampToValueAtTime(0.01, endTime);
+                oscillator.stop(endTime);
+            }, duration);
+        };
+
+        const transmitMorse = (morseMessage, startDelay = 0) => {
+            let delay = startDelay;
+            [...morseMessage].forEach((symbol) => {
+                if (stopTransmission) return;
+
+                if (symbol === '.') {
+                    timeouts.push(setTimeout(() => playSound(unitDuration), delay));
+                    delay += unitDuration * 2;
+                } else if (symbol === '-') {
+                    timeouts.push(setTimeout(() => playSound(unitDuration * 3), delay));
+                    delay += unitDuration * 4;
+                } else if (symbol === ' ') {
+                    delay += unitDuration * 6;
+                }
+            });
+            return delay;
+        };
+
+        if (delayOption === 'VVV') {
+            setTimeout(() => {
+                const vvvMorse = textToMorse('VVV');
+                const vvvDuration = transmitMorse(vvvMorse);
+                setTimeout(() => {
+                    transmitMorse(morse);
+                }, vvvDuration + 1000);
+            }, 1000);
+        } else {
+            setTimeout(() => transmitMorse(morse), parseInt(delayOption));
+        }
+    }
+
+    function stopMorse() {
+        stopTransmission = true;
+        timeouts.forEach(timeout => clearTimeout(timeout));
+        timeouts = [];
+        const textElement = document.getElementById('textInput');
+        if (textElement.classList.contains('blocked')) {
+            textElement.classList.remove('blocked');
+        }
+    }
+
+    const textos = [
+        "SERVICO DE RADIODIFUSAO EH DEFINIDO COMO UM SERVICO DE\n" +
+        "RADIOCOMUNICACAO CUJAS EMISSOES ESTAO DESTINADAS A RECEPCAO\n" +
+        "DIRETA PELO PUBLICO EM GERAL PT",
+        "A ARCA DE NOE QUE PODE NOS SALVAR DO DILUVIO DE PAPEL EH O\n" +
+        "MICROFILME, QUE TEM O CONDAO NAO APENAS DE RESOLVER ESTE, MAS\n" +
+        "TODOS OS PROBLEMAS DE ARQUIVO.",
+        "EH NECESSARIO O USO DE RADIOFAROIS, ESTACOES DE EMBARCACOES E\n" +
+        "DISPOSITIVOS DE SALVAMENTO PARA SEGURANCA DA NAVEGACAO E SALVAR\n" +
+        "VIDAS HUMANAS NO MAR PT",
+        "EXISTINDO COMUNICACAO ENTRE DOIS PONTOS PODEMOS TRANSMITIR A\n" +
+        "MENSAGEM DESEJADA ATRAVES DE CODIGOS OU DA PROPRIA VOZ USANDO\n" +
+        "VOZ TEMOS A TELEFONIA.",
+        "A HISTORIA TEM NOS ENSINADO QUE UM LIBERALISMO EXCESSIVO CONDUZ\n" +
+        "A DESORDEM E A INTRANQUILIDADE, PELO MENOS ATE O ATUAL ESTAGIO\n" +
+        "DA EVOLUCAO HUMANA PT",
+        "ADMINISTRAR ESPECTRO DE RADIOFREQUENCIA IMPLICA EM GERIR\n" +
+        "RACIONALMENTE A UTILIZACAO DE DIVERSAS FREQUENCIAS DISTRIBUIDAS\n" +
+        "PELOS SEUS USUARIOS.",
+        "A ULTIMA CONFERENCIA DA U.I.T VG QUE REVISOU O PLANO DE\n" +
+        "DISTRIBUICAO DE FREQUENCIAS PARA O SERVICO MOVEL AERONAUTICO VG\n" +
+        "FOI REALIZADA NO ANO DE 1966.",
+        "NUM RITUAL QUE SE REPETE TODOS OS ANOS, EM OLIMPIA, NA GRECIA, A\n" +
+        "TOCHA OLIMPICA EH ACESA, PARTINDO LOGO EM SEGUIDA PARA O PAIS\n" +
+        "SEDE DOS JOGOS OLIMPICOS PT",
+        "A INDEXACAO EH O FATOR BASICO VG FUNDAMENTAL VG INDISPENSAVEL VG\n" +
+        "PARA O EXITO DE QUALQUER SISTEMA DE MICROFILMAGEM OU DE\n" +
+        "ARMAZENAMENTO EM COMPUTADOR.",
+        "MEIO UTILIZADO PARA A PROPAGACAO DAS ONDAS ELETROMAGNETICAS VG\n" +
+        "EH A CAMADA ATMOSFERICA ADJACENTE A SUPERFICIE TERRESTRE\n" +
+        "DENOMINADA TROPOSFERA PT",
+        "A FIBRA OTICA CONSISTE, EM PRINCIPIO, NUM NUCLEO INTERNO DE\n" +
+        "VIDRO DE ALTISSIMO GRAU DE PUREZA ENVOLVIDO POR UMA CAMADA\n" +
+        "EXTERNA OU INVOLUCRO DE VIDRO.",
+        "REGULAMENTO DE RADIOCOMUNICACOES DA UIT, COBRE A FAIXA DE\n" +
+        "ESPECTRO ELETRICO DE 1O KHZ A 275 KHZ E ESTABELECE ATRIBUICOES A\n" +
+        "41 DIFERENTES SERVICOS PT",
+        "A VOZ DO COMANDO SOH CHEGA ATE ONDE VAI O FIO TELEFONICO OU ONDE\n" +
+        "CHEGAM AS ONDAS ELETROMAGNETICAS DOS CONJUNTOS RADIO E\n" +
+        "EQUIPAMENTOS DE MULTICANAIS PT",
+        "RADIO, NO BRASIL, FOI UTILIZADO ANTES DA PRIMEIRA GUERRA\n" +
+        "MUNDIAL, PELA REPARTICAO GERAL DOS TELEGRAFOS, PELO EXERCITO E\n" +
+        "PELA MARINHA BRASILEIRA.",
+        "VIVER EH ATRAVES DE UM SORRISO BUSCAR O OUTRO. EH SABER PARTIR E\n" +
+        "SABER VOLTAR. EH TRANSFORMAR SONHOS EM REALIDADES CERTOS DE QUE\n" +
+        "SERIA TOLICE INVERTE-LOS.",
+        "VOCE SABIA QUE: EM 1874 FOI LANCADO O PRIMEIRO CABO SUBMARINO E\n" +
+        "QUE ESTE LIGAVA RECIFE E LISBOA? QUE O BRASIL FOI O PRIMEIRO\n" +
+        "PAIS DO MUNDO A EMITIR SELOS?",
+        "VOCE SABIA QUE: O TELEGRAFO FOI INVENTADO NO ANO DE 1838 POR\n" +
+        "SAMUEL MORRE E QUE A PRIMEIRA MENSAGEM TRANSMITIDA ATRAVES DELE\n" +
+        "FOI: ATENCAO UNIVERSO?",
+        "A COMUNICACAO PODE SER DEFINIDA COMO A EMISSAO E A RECEPCAO DE\n" +
+        "INFORMACOES, IDEIAS, EMOCOES, ETC, POR MEIO DO USO DE SIMBOLOS,\n" +
+        "DE IMAGENS, SONS, ETC PT",
+        "VIVER EH IR CONSUMINDO O AMANHA, NA EXPECTATIVA DE UM OUTRO\n" +
+        "AMANHA. EH PERCORRER CAMINHOS E ESTRADAS ABRACANDO A CADA\n" +
+        "CHEGADA O MEDO E A CORAGEM.",
+        "CADA UM DEVE FABRICAR SEU SEGREDO E GUARDA-LO O PERFUME DA FLOR,\n" +
+        "POR EXEMPLO, EH UM SEGREDO. SE A ARRANCAMOS DO JARDIM ELA MORRE.\n" +
+        "E MORTA AINDA PERFUMA.",
+        "SABER VIVER NAO EH VIAJAR PELO ESPACO QUANDO NO CHAO SE TEM\n" +
+        "TANTO PARA ENSINAR TANTO PARA APRENDER. SABER VIVER EH SONHAR\n" +
+        "SEM SE AFASTAR, SEM SE ESQUECER.",
+        "SISTEMA DE TELECOMUNICACOES VG EM NOSSO PAIS VG DEPENDE DE UM\n" +
+        "GRANDE NUMERO DE FATORES DISTINTOS VG IMPLICANDO EM CONTINUA\n" +
+        "REVISAO E ATUALIZACAO PT",
+        "ATRAVES DAS COMUNICACOES, O HOMEM EVITA A SOLIDAO FRUSTRANTE DO\n" +
+        "ISOLAMENTO E, AINDA, ENCONTRA UM MEIO DE SATISFAZER AS SUAS\n" +
+        "NECESSIDADES E DESEJOS.",
+        "A INCAPACIDADE PARA AFIRMAR A SUPREMACIA DA POLITICA SOBRE A\n" +
+        "TECNOLOGIA, EH UM FENOMENO BASTANTE ALARMANTE E CADA VEZ MAIS\n" +
+        "PERIGOSO NO MUNDO MODERNO.",
+        "COMPUTADOR CONTINUARA INVADINDO TODOS OS DOMINIOS DA VIDA HUMANA\n" +
+        "E, PARTICULARMENTE AS TELECOMUNICACOES. SERA BOM QUE TODOS\n" +
+        "APRENDAM A PALAVRA.",
+        "ORA AQUI TENS, MEU CARO CIDADAO: SUPOE QUE TU QUERES TER NA TUA\n" +
+        "SALA A IMAGEM DE NAPOLEAO I PASSANDO PELOS ALPES (ESTAS\n" +
+        "FANTASIAS SAO-TE PERMITIDAS) PT",
+        "VIDA NAO EH O QUE GERA NO VENTRE E FINALIZA NO TUMULO, PORQUE\n" +
+        "ESTES ESPACOS DE ANO SAO INSTANTES DE UMA VIDA SECULAR E ETERNA\n" +
+        "EH ESTA MESQUINHA EXISTENCIA.",
+        "NINGUEM SERA SUJEITO A INTERFERENCIA EM SUA VIDA PRIVADA, SUA\n" +
+        "FAMILIA, EM SEU LUGAR OU SUA CORRESPONDENCIA, NEM A ATAQUES A\n" +
+        "SUA HONRA E SUA REPUTACAO.",
+        "MINUTO DIVIDE O CRESCER DA EXISTENCIA E O SEU ACORDAR; EH A\n" +
+        "PRIMEIRA CHAMA QUE ILUMINA OS RECANTOS DA ALMA E O PRIMEIRO SOM\n" +
+        "ENCANTADO NA PRIMEIRA CORDA.",
+        "A SOCIEDADE DA INFORMACAO IRA DEFLAGRAR VG NECESSARIAMENTE VG\n" +
+        "CONFLITOS CULTURAIS PT O PRIMEIRO DELES VG SERA AS AMEACAS DA\n" +
+        "INVASAO DA PRIVACIDADE PT",
+        "OS PRODUTOS ARTESANAIS ESTAO INVADINDO O MERCADO E OS ARTESOES,\n" +
+        "QUE, ALEM DA ADMIRACAO, ESTAO GANHANDO MAIS DINHEIRO, MUITO MAIS\n" +
+        "DO QUE PLANEJARAM.",
+        "OS BRASILEIROS FICARAM DESCONFIADOS, EM MARCO DE 1994. QUANDO O\n" +
+        "GOVERNO FEDERAL ANUNCIOU UM PACOTE DE MEDIDAS, QUE MUDAVA\n" +
+        "NOVAMENTE O NOME DA MOEDA.",
+        "EM 1984, ARMACAO DE BUZIOS ERA APENAS UM COLAR DE PRAIAS, ILHAS\n" +
+        "E ENSEADAS, NÃO MUITO DIFERENTE DOS TEMPOS EM QUE FORA UM PORTO\n" +
+        "DE PIRATAS E BALEEIROS.",
+        "SAI ANO, ENTRA ANO E A TELEVISAO BRASILEIRA NÃO CONSEGUE DAR\n" +
+        "CABO DE UM TIPO DE ATRACAO QUE REMONTA A EPOCA DE OURO DO RADIO:\n" +
+        "O PROGRAMA DE CALOUROS AO VIVO.",
+        "O PROGRAMA SITIO DO PICA-PAU AMARELO VIRA MANIA ENTRE AS\n" +
+        "CRIANCAS. PROFESSORES APROVEITAM PARA ENSINAR MITOLOGIA,\n" +
+        "HISTORIA E CULTURA BRASILEIRA.",
+        "MONTEIRO LOBATO ESCREVEU 17 OBRAS E CONQUISTA AS CRIANCAS MESMO\n" +
+        "NA ERA POKEMON, E AINDA AJUDA PROFESSORES A ENSINAR TEMAS\n" +
+        "COMPLEXOS COMO FOLCLORE."
+    ];
+
+    // Função para popular o seletor dinamicamente
+    function populateTextOptions() {
+        const textOptions = document.getElementById('textOptions');
+
+        // Iterar sobre o array de textos e criar opções
+        textos.forEach((texto, index) => {
+            const option = document.createElement('option');
+            option.value = texto; // Define o valor da opção
+            option.textContent = `Texto ${index + 1}`; // Define o texto visível
+            textOptions.appendChild(option); // Adiciona a opção ao select
+        });
+    }
+
+    // Função para atualizar o valor da textarea com base no texto selecionado
+    function updateTextInput() {
+        const textInput = document.getElementById('textInput');
+        const selectedOption = document.getElementById('textOptions').value;
+
+        // Atualiza o valor da caixa de texto com o conteúdo da opção selecionada
+        textInput.value = selectedOption || ""; // Insere o texto ou limpa se for vazio
+    }
+
+    // Popula as opções ao carregar a página
+    populateTextOptions();
+</script>
+</body>
+</html>

@@ -80,7 +80,6 @@
     </select>
 </div>
 
-<!-- Select de opções construídas dinamicamente -->
 <div class="text-options-control">
     <label for="textOptions">Escolha uma opção de texto: </label>
     <select id="textOptions" onchange="updateTextInput()">
@@ -147,6 +146,7 @@
         let delay = 0;
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const playSound = (duration) => {
+            // TODO: melhorar isso. Som ainda "estoura" em alguns momentos
             if (stopTransmission) return;
             const oscillator = audioCtx.createOscillator();
             oscillator.type = 'sine';

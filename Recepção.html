@@ -217,6 +217,10 @@
         const textElement = document.getElementById('textInput');
         if (textElement.classList.contains('blocked')) {
             textElement.classList.remove('blocked');
+            const hideTextCheckbox = document.getElementById('hideText');
+            if (hideTextCheckbox) {
+                hideTextCheckbox.checked = false;
+            }
         }
     }
 

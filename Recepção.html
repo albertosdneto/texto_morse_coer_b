@@ -122,6 +122,22 @@
         return text.toUpperCase().split('').map(char => morseCode[char] || '').join(' ');
     }
 
+    // Função para esconder ou mostrar a caixa de texto ao selecionar o checkbox
+    function toggleTextVisibility() {
+        const textElement = document.getElementById('textInput');
+        const hideTextCheckbox = document.getElementById('hideText');
+
+        if (hideTextCheckbox.checked) {
+            textElement.classList.add('blocked'); // Adiciona a classe para ocultar
+        } else {
+            textElement.classList.remove('blocked'); // Remove a classe para exibir
+        }
+    }
+
+    // Adicionando um ouvinte de eventos ao checkbox para resolver isso
+    document.getElementById('hideText').addEventListener('change', toggleTextVisibility);
+
+
     function playMorse() {
         const textElement = document.getElementById('textInput');
         const hideText = document.getElementById('hideText').checked;

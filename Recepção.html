@@ -95,6 +95,8 @@
     <input type="checkbox" id="hideText">
     <label for="hideText">Ocultar</label>
 </div>
+<br>
+<div id="charCount">Caracteres válidos para conversão: 0</div>
 <button onclick="playMorse()">Tocar Código Morse</button>
 <button onclick="stopMorse()" style="background-color: red; color: white;">Parar</button>
 <script>
@@ -121,6 +123,24 @@
     function textToMorse(text) {
         return text.toUpperCase().split('').map(char => morseCode[char] || '').join(' ');
     }
+
+    function updateValidCharCount() {
+        const textElement = document.getElementById('textInput');
+        const text = textElement.value.toUpperCase();
+
+        // Lista de caracteres válidos no Morse (excluindo espaço em branco)
+        const validChars = Object.keys(morseCode).filter(char => char !== ' ');
+
+        // Filtrar os caracteres válidos no texto
+        const validCharCount = [...text].filter(char => validChars.includes(char)).length;
+
+        // Atualizar a exibição no elemento
+        document.getElementById('charCount').innerText = `Caracteres válidos para conversão: ${validCharCount}`;
+    }
+
+
+    // Adicionar o evento ao campo de texto
+    document.getElementById('textInput').addEventListener('input', updateValidCharCount);
 
     // Função para esconder ou mostrar a caixa de texto ao selecionar o checkbox
     function toggleTextVisibility() {
@@ -355,6 +375,9 @@
 
         // Atualiza o valor da caixa de texto com o conteúdo da opção selecionada
         textInput.value = selectedOption || ""; // Insere o texto ou limpa se for vazio
+
+        // Chama a função para atualizar a contagem de caracteres válidos
+        updateValidCharCount();
     }
 
     // Popula as opções ao carregar a página

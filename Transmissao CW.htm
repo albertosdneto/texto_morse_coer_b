@@ -1,0 +1,284 @@
+<html><head><title>Transmissão Código Morse</title><style type="text/css"></style></head>
+<body><font face="Lucida Sans">
+<center>
+<table width=100% border=0><tr style="background-color:rgb(64,111,181)" border=0><td width=* align=center><font color=white ><h1>Transmissão de Código Morse</h1></font><p style="margin-top:10px"><font size=2 color=white>V1.1</font></p>
+</tr></table></center><br><form id="formulario">
+<p>SIMULAÇÃO DE CODIGO MORSE
+</p>
+<p><FONT size=2 style="visibility:hidden">Nome: <input type=text size=95 id="nome"> &nbsp; CPF: <input type=text size=20 id="cpf" maxlength=19></font>
+</p><p><p><font size=2><b>Instruções:</b> Converter o texto em sinais gráficos de ponto . e hífen - que correspondem, respectivamente, aos sinais curto e longo em Código Morse. Dê 1 espaço para finalizar um caracter (o espaço entre palavras é ignorado). Não é possível retroceder.<br><br><span id="instr">Para começar, clique no botão Revelar Texto. Após finalizar, clique em Concluir.</span></font>
+</p><br>
+TEXTO A SER CONVERTIDO&nbsp; &nbsp;
+<a href="#" id="preparar_botao" onclick="javascript:this.style.visibility='hidden';preparar_texto_inicial();" style="font-family: 'Lucida Sans';font-size:small;text-decoration: none;">Preparar texto</a></p><p>
+ <button type=button onclick="javascript:inicia_teste();" id="revelar"><b> REVELAR TEXTO E INICIAR O TESTE </b></button></p>
+<p>
+<textarea rows=3 cols=100 id='texto_a_converter'></textarea></div><div id="texto_revelado" style="visibility:hidden">&nbsp;</div></p>
+<br>
+
+
+
+<p>RESPOSTA</p><p>
+<textarea rows="20" cols="100" id="texto_convertido" oncut="return false;" onpaste="return false;" onkeydown="return trava_char();" readonly></textarea></p>
+<p><input type=text name="timetextarea" id="timetextarea" style="font-size:small;border:none" value="Tempo de prova" size=100 readonly>
+
+</p><p><button id="botao_concluir" type=button onclick="javascript:this.style.visibility='hidden';concluir();"><b> CONCLUIR O TESTE </b></button></p>
+
+<p>
+</p></form><p>&nbsp;</p>
+<br><center>
+<div id="finalizacao" style="visibility:hidden"><a href="#" id="apurar" onclick="apurar();" style="font-family: 'Lucida Sans';text-decoration: none;">Abrir gabarito de apuração</a>&nbsp;&nbsp;&nbsp;
+
+<a href="#" id="imprimir" onclick="javascript:this.style.visibility='hidden';document.getElementById('apurar').style.visibility='hidden';window.print();window.setTimeout(mostra_apuracao, 2000);" style="font-family: 'Lucida Sans';text-decoration: none;">Imprimir</a>
+</div>
+
+<script>
+function preparar_texto_inicial(){
+ // Substitui quebras de linha, pontos e vírgulas por espaços ou strings vazias no valor do texto_a_converter
+ let texto = document.getElementById('texto_a_converter').value
+         .replace(/\n/g, ' ') // Remove quebras de linha
+         .replace(/\./g, '') // Remove pontos
+         .replace(/,/g, ''); // Remove vírgulas
+
+ // Atualiza o valor no campo de texto
+ document.getElementById('texto_a_converter').value = texto;
+
+// document.getElementById('texto_revelado').innerHTML = "<font size=5 face=system>" + document.getElementById('texto_a_converter').value.toUpperCase() + "</font>";
+if (document.getElementById('texto_a_converter').value == "") document.getElementById('texto_a_converter').value = " ";
+txt_prop = document.getElementById('texto_a_converter').value.toUpperCase().split("");
+document.getElementById('botao_concluir').style.visibility = "visible";
+document.getElementById('revelar').style.display = "block";
+document.getElementById('timetextarea').style.visibility = "visible";
+document.getElementById('botao_concluir').style.visibility = "visible";
+document.getElementById('texto_a_converter').style.display = "none";
+document.getElementById('texto_convertido').readOnly = false;
+}
+
+function inicia_teste(){
+document.getElementById('texto_revelado').style.visibility = "visible";
+exibe_proxima();
+sw_start();
+document.getElementById('revelar').style.display='none';
+document.getElementById('cpf').readOnly = true;
+
+document.getElementById('texto_convertido').focus();
+}
+
+
+
+
+function concluir(){
+	sw_stop();
+	document.getElementById('texto_convertido').readOnly = true;
+	document.getElementById('instr').style.display = "none";
+	document.getElementById('finalizacao').style.visibility = 'visible';
+}
+
+
+function trava_char(e) {
+    var code;
+    if (!e) var e = window.event; 
+    if (e.keyCode) code = e.keyCode;
+    else if (e.which) code = e.which;
+    var resultado = false;
+    if (code == 109 || code == 189 || code == 194 || code == 190 || code == 32){ resultado = true;}
+    if (code.toString() == "32") exibe_proxima();
+    return resultado;
+}
+
+var negritada = 0;
+var txt_prop;
+
+function exibe_proxima(){
+	if (txt_prop.length <= 0) return;
+	if (negritada > txt_prop.length) return;
+	negritada++;
+	var frase = "<font size=5 face=system>";
+	var ok = false;
+	while ((ok == false) && (txt_prop[negritada - 1] != null)){
+		var caract = txt_prop[negritada - 1].charCodeAt(0);
+	 	if ( ((caract >= 65) && (caract <= 90)) || ((caract >= 48) && (caract <= 57)) ){ok = true}else{negritada++;ok = false;};
+	}
+	for (i = 1; i <= txt_prop.length; i++){
+		if (negritada == i){
+			frase = frase + "<b>" + txt_prop[i-1] + "</b>";
+			}else{
+			frase = frase + txt_prop[i-1] + "";
+			}
+	}
+	frase = frase + "</font>";
+	document.getElementById('texto_revelado').innerHTML = frase;
+}
+
+
+document.getElementById('botao_concluir').style.visibility='hidden';
+document.getElementById('revelar').style.display='none';
+document.getElementById('formulario').reset();
+document.getElementById('tempo_de_prova').value="Tempo de prova";
+document.getElementById('texto_convertido').value = "";
+
+
+var timercount = 0;
+var timestart  = null;
+ 
+function showtimer() {
+	if(timercount) {
+		clearTimeout(timercount);
+		clockID = 0;
+	}
+	if(!timestart){
+		timestart = new Date();
+	}
+	var timeend = new Date();
+	var timedifference = timeend.getTime() - timestart.getTime();
+	timeend.setTime(timedifference);
+	var minutes_passed = timeend.getMinutes();
+	if(minutes_passed < 10){
+		minutes_passed = "0" + minutes_passed;
+	}
+	var seconds_passed = timeend.getSeconds();
+	if(seconds_passed < 10){
+		seconds_passed = "0" + seconds_passed;
+	}
+	document.getElementById('timetextarea').value = minutes_passed + ":" + seconds_passed;
+	timercount = setTimeout("showtimer()", 1000);
+}
+
+function sw_start(){
+	if(!timercount){
+	timestart   = new Date();
+	document.getElementById('timetextarea').value = "00:00";
+	timercount  = setTimeout("showtimer()", 500);
+	}
+	else{
+	var timeend = new Date();
+		var timedifference = timeend.getTime() - timestart.getTime();
+		timeend.setTime(timedifference);
+		var minutes_passed = timeend.getMinutes();
+		if(minutes_passed < 10) minutes_passed = "0" + minutes_passed;
+		var seconds_passed = timeend.getSeconds();
+		if(seconds_passed < 10)	seconds_passed = "0" + seconds_passed;	
+}
+}
+Date.prototype.formatDDMMYYYY = function(){
+    return (this.getDate() + 1) + 
+    "/" +  this.getMonth() +
+    "/" +  this.getFullYear();
+}
+
+function sw_stop() { 
+	if(timercount) {
+		clearTimeout(timercount);
+		timercount  = 0;
+		var timeend = new Date();
+		var timedifference = timeend.getTime() - timestart.getTime();
+		timeend.setTime(timedifference);
+		var minutes_passed = timeend.getMinutes();
+		if(minutes_passed < 10){
+			minutes_passed = "0" + minutes_passed;
+		}
+		var seconds_passed = timeend.getSeconds();
+		if(seconds_passed < 10){
+			seconds_passed = "0" + seconds_passed;
+		}
+		document.getElementById('timetextarea').value = "Prova concluída. Tempo total da prova: " + minutes_passed + "min " + seconds_passed + "seg. Em " + Intl.DateTimeFormat("pt-BR").format(new Date()) + ".";
+	}
+	timestart = null;
+}
+
+
+
+function cw2alpha() {
+cw = new Array(" ",".-","-...","-.-.","-..",".","..-.","--.",
+                  "....","..",".---","-.-",".-..","--","-.",
+                  "---",".--.","--.-",".-.","...","-","..-","...-",
+                  ".--","-..-","-.--","--..",
+                  "-----",".----","..---","...--","....-",".....",
+                  "-....","--...","---..","----.",".-.-.-",
+                  "..--..","-.--.",".-.-.","--..--","-....-"," ");
+alpha = new Array(" ","A","B","C","D","E","F","G","H","I","J",
+                    "K","L","M","N","O","P","Q","R","S","T","U",
+                    "V","W","X","Y","Z","0","1","2","3","4","5",
+                    "6","7","8","9",".","?","kn","ar",",","-"," ");
+   t = ""; s = 0; idx = 1; 
+// Read CW window...
+   m = document.getElementById('texto_convertido').value;
+   m = m + " ";
+   len = m.length - 1;
+        while((idx != -1) && (idx < len)) {
+// Find first/next space and extract next CW character...
+     idx = m.indexOf(" ", s);
+      if(idx != -1) {
+         m1 = m.substring(s, idx);
+// Match CW character with CW Array and copy Alpha to text...
+         for(var j = 0; j < cw.length; j++) {
+            if(m1 == cw[j]) {
+               t = t + alpha[j];
+               break;
+            }
+         }
+         
+      }
+// Add an extra space between words...
+      if(m.substring(idx+1, idx+2) == " ") {
+         t = t + " ";
+         idx++;
+       }
+// If CW character is not matched, move pointer and try again...
+// (Helps with unpredictable characters introduced during cutting
+//  and pasting into the CW window)...
+      if((j == cw.length) &&
+          (m.substring(s,idx+1) != " ") &&
+         (idx < len)) {
+         idx = idx - m1.length;
+      }
+      idx++;
+      s = idx;
+   }
+// Write text to text window...
+
+   return(t);
+}
+
+function mostra_apuracao(){ 
+document.getElementById('apurar').style.visibility='visible';
+}
+
+function apurar(){
+var reconvertido = cw2alpha();
+var output = "<html><head><title>Teste Transmissão Código Morse - gabarito de apuração</title></head><body><font face='Lucida Sans'><center><table width=100% border=0><tr style='background-color:rgb(64,111,181)' border=0><td width=* align=center><font color=white ><h1>Teste de conhecimentos básicos em transmissão de Código Morse</h1></font><p style='margin-top:10px'><font size=2 color=white>Gabarito de Apuração</font></p></tr></table></center><br><p>IDENTIFICAÇÃO<br><FONT size=2>";
+output = output + document.getElementById('nome').value;
+output = output + " | " + document.getElementById('cpf').value;
+output = output + " | " + Intl.DateTimeFormat("pt-BR").format(new Date());
+output = output + "</font></p><p><br>TEXTO PROPOSTO E RESPOSTA  <font size=2>(Apresentado caracter por caracter)</font><br><TABLE><FONT FACE=SYSTEM SIZE=2><tr>";
+var array_txt_orig = document.getElementById('texto_a_converter').value.toUpperCase().replace(/ /g,'').split("");
+var array_txt_resp = reconvertido.replace(/ /g,'').split("");
+var acertos = 0;
+for (i = 0; i <= array_txt_orig.length - 1; i++){	
+                output = output + "<td style=background-color:lightgray;text-align:center>" +array_txt_orig[i] + "</td>";
+
+}	
+output = output + "</tr><tr>"
+
+for (i = 0; i <= array_txt_orig.length - 1; i++){
+	        if (array_txt_resp[i] == null) array_txt_resp[i] = " ";
+
+		if (array_txt_resp[i] == array_txt_orig[i]){
+		output = output + "<td style=background-color:green;text-align:center>" + array_txt_resp[i] + "</td>";
+		acertos++;
+}else{
+		output = output + "<td style=background-color:red;text-align:center>" + array_txt_resp[i] + "</td>";
+}
+}
+
+
+
+output = output + "</font></tr></table></p><p><br>ANÁLISE AUTOMÁTICA<br><font size=2>CARACTERES NO TEXTO PROPOSTO: " + array_txt_orig.length.toString();
+output = output + "<br>CORRESPONDÊNCIAS CORRETAS: <B>" + acertos.toString() + "</B> (";
+var perc = Math.round(((100 * acertos)/ array_txt_orig.length) * 10) / 10;
+output = output + perc.toString() + "%)</font><p><br></body></html>";
+window.open().document.write(output);
+}
+
+</script></body>
+</html>
+

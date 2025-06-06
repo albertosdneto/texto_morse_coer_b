@@ -14,7 +14,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transmissor em Código Morse</title>
-    <link rel="manifest" href="manifest.json">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -49,13 +48,6 @@
             margin-bottom: 20px;
         }
     </style>
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/service-worker.js')
-                .then(() => console.log('Service Worker registrado!'))
-                .catch(console.error);
-        }
-    </script>
 </head>
 <body>
 <h1>Transmissor de Código Morse</h1>
@@ -103,10 +95,10 @@
     <input type="checkbox" id="hideText">
     <label for="hideText">Ocultar</label>
 </div>
-<br>
-<div id="charCount">Caracteres válidos para conversão: 0</div>
 <button onclick="playMorse()">Tocar Código Morse</button>
 <button onclick="stopMorse()" style="background-color: red; color: white;">Parar</button>
+<button id="downloadMorse" onclick="downloadMorse()">Baixar Áudio MP3</button>
+
 <script>
     const morseCode = {
         'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..',
@@ -132,38 +124,8 @@
         return text.toUpperCase().split('').map(char => morseCode[char] || '').join(' ');
     }
 
-    function updateValidCharCount() {
-        const textElement = document.getElementById('textInput');
-        const text = textElement.value.toUpperCase();
-
-        // Lista de caracteres válidos no Morse (excluindo espaço em branco)
-        const validChars = Object.keys(morseCode).filter(char => char !== ' ');
-
-        // Filtrar os caracteres válidos no texto
-        const validCharCount = [...text].filter(char => validChars.includes(char)).length;
-
-        // Atualizar a exibição no elemento
-        document.getElementById('charCount').innerText = `Caracteres válidos para conversão: ${validCharCount}`;
-    }
-
-
-    // Adicionar o evento ao campo de texto
-    document.getElementById('textInput').addEventListener('input', updateValidCharCount);
-
-    // Função para esconder ou mostrar a caixa de texto ao selecionar o checkbox
-    function toggleTextVisibility() {
-        const textElement = document.getElementById('textInput');
-        const hideTextCheckbox = document.getElementById('hideText');
-
-        if (hideTextCheckbox.checked) {
-            textElement.classList.add('blocked'); // Adiciona a classe para ocultar
-        } else {
-            textElement.classList.remove('blocked'); // Remove a classe para exibir
-        }
-    }
-
-    // Adicionando um ouvinte de eventos ao checkbox para resolver isso
-    document.getElementById('hideText').addEventListener('change', toggleTextVisibility);
+    let recorder;
+    let audioChunks = [];
 
 
     function playMorse() {
@@ -187,23 +149,27 @@
             textElement.classList.add('blocked');
         }
 
-        let delay = 0;
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const destination = audioCtx.createMediaStreamDestination();
+
+        // Inicia o gravador
+        recorder = new MediaRecorder(destination.stream);
+        recorder.ondataavailable = e => audioChunks.push(e.data);
+        recorder.start();
+
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+        gainNode.connect(destination);
+
         const playSound = (duration) => {
-            // TODO: melhorar isso. Som ainda "estoura" em alguns momentos
             if (stopTransmission) return;
             const oscillator = audioCtx.createOscillator();
             oscillator.type = 'sine';
             oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
-            const gainNode = audioCtx.createGain();
-            gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
             oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
             oscillator.start();
             setTimeout(() => {
-                const endTime = audioCtx.currentTime + 0.1;
-                gainNode.gain.exponentialRampToValueAtTime(0.01, endTime);
-                oscillator.stop(endTime);
+                oscillator.stop();
             }, duration);
         };
 
@@ -236,21 +202,40 @@
         } else {
             setTimeout(() => transmitMorse(morse), parseInt(delayOption));
         }
+
+        setTimeout(() => {
+            // Parar a gravação após transmissão
+            recorder.stop();
+        }, transmitMorse(morse) + 2000);
+    }
+
+    function downloadMorse() {
+        if (audioChunks.length === 0) {
+            alert('Nenhum áudio foi gravado. Reproduza uma mensagem primeiro.');
+            return;
+        }
+
+        const blob = new Blob(audioChunks, { type: 'audio/mp3' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'morse.mp3';
+        link.click();
     }
 
     function stopMorse() {
         stopTransmission = true;
+        if (recorder && recorder.state === 'recording') {
+            recorder.stop();
+        }
         timeouts.forEach(timeout => clearTimeout(timeout));
         timeouts = [];
         const textElement = document.getElementById('textInput');
         if (textElement.classList.contains('blocked')) {
             textElement.classList.remove('blocked');
-            const hideTextCheckbox = document.getElementById('hideText');
-            if (hideTextCheckbox) {
-                hideTextCheckbox.checked = false;
-            }
         }
     }
+
 
     const textos = [
         "SERVICO DE RADIODIFUSAO EH DEFINIDO COMO UM SERVICO DE\n" +
@@ -383,9 +368,6 @@
 
         // Atualiza o valor da caixa de texto com o conteúdo da opção selecionada
         textInput.value = selectedOption || ""; // Insere o texto ou limpa se for vazio
-
-        // Chama a função para atualizar a contagem de caracteres válidos
-        updateValidCharCount();
     }
 
     // Popula as opções ao carregar a página

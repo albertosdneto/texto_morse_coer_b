@@ -1,0 +1,191 @@
+<html>
+<head><title>Conversor Texto-CW</title></head>
+<body><font face="Lucida Sans">
+    <center>
+        <table width=100% border=0>
+            <tr style="background-color:rgb(64,111,181)" border=0>
+                <td width=* align=center><font color=white face="Lucida Sans"><h1> Conversor Online - Texto para Código
+                    Morse</h1></font>
+                    <p style="margin-top:10px"><font size=1 color=white>V 1.1</font></p>
+            </tr>
+        </table>
+    </center>
+    <br>
+    <form id="formulario">
+        <p><font face="Lucida Sans">
+            CONFIGURAÇÕES DO CÓDIGO MORSE&nbsp&nbsp;<button type=button
+                                                            onclick="javascript:esconde();javascript:reseta();stop();">
+            <font face='Lucida Sans' size=2> Reseta </font></button></p>
+        <p>
+            Velocidade do caracter: <select id="speed" size="1" onchange="javascript:esconde();iguala();stop();">
+            <option selected>5</option>
+            <option>6</option>
+            <option>7</option>
+            <option>8</option>
+            <option>9</option>
+            <option>10</option>
+            <option>11</option>
+            <option>12</option>
+            <option>13</option>
+            <option>14</option>
+            <option>15</option>
+            <option>16</option>
+            <option>17</option>
+            <option>18</option>
+            <option>19</option>
+            <option>20</option>
+            <option>21</option>
+            <option>22</option>
+            <option>23</option>
+            <option>24</option>
+            <option>25</option>
+            <option>26</option>
+            <option>27</option>
+            <option>28</option>
+            <option>29</option>
+            <option>30</option>
+        </select> Ppm
+        </p>
+        <p>
+            <font color=gray> Velocidade do espaçamento (opcional): <select id="eff" style="color:gray" size="1"
+                                                                            onchange="javascript:esconde();stop();">
+                <option selected>5</option>
+                <option>6</option>
+                <option>7</option>
+                <option>8</option>
+                <option>9</option>
+                <option>10</option>
+                <option>11</option>
+                <option>12</option>
+                <option>13</option>
+                <option>14</option>
+                <option>15</option>
+                <option>16</option>
+                <option>17</option>
+                <option>18</option>
+                <option>19</option>
+                <option>20</option>
+                <option>21</option>
+                <option>22</option>
+                <option>23</option>
+                <option>24</option>
+                <option>25</option>
+                <option>26</option>
+                <option>27</option>
+                <option>28</option>
+                <option>29</option>
+                <option>30</option>
+            </select> Ppm</font></p>
+        <p>
+            Tom:
+            <select id="freq" size="1" onchange="javascript:esconde();stop();">
+                <option>500</option>
+                <option>550</option>
+                <option>600</option>
+                <option>650</option>
+                <option SELECTED>700</option>
+                <option>750</option>
+                <option>800</option>
+                <option>850</option>
+                <option>900</option>
+                <option>950</option>
+            </select> Hz
+        </p>
+        <p>&nbsp;</p>
+
+        <p>TEXTO A SER CONVERTIDO &nbsp&nbsp;<button type=button onclick="javascript:limpa();stop();esconde()"><font
+                face='Lucida Sans' size=2> Limpar texto </font></button>
+        </p>
+        <p>
+            <textarea rows="20" cols="100" id="texto" onkeydown="javascript:esconde();stop();"
+                      oncut="javascript:esconde();" onpaste="javascript:esconde();">CQ CQ</textarea></p>
+        <p>&nbsp;</p>
+
+        <p>
+            <button type=button onclick="javascript:executa();"><B> CONVERTER E CARREGAR ÁUDIO </B></button>
+        </p>
+    </form>
+    <p>&nbsp;</p>
+    <br>
+    <center>
+
+        <div id="result"
+             style="display:none;width:500px;border-width:thin;border-style:solid;text-align:center;padding:15px;background-color:rgb(64,111,181)">
+            <table align=center>
+                <tr>
+                    <td><a id='playbutton'
+                           style='font-size:16px;border-style:outset;border-width:4px;padding:8px;background-color:#dddddd;font-family:Lucida Sans;font-weight:bold;text-decoration:none;color:black;'
+                           href='javascript:playpause();'> Play / Pause </a></td>
+                    <td><a id='stopbutton'
+                           style='font-size:16px;border-style:outset;border-width:4px;padding:8px;background-color:#dddddd;font-family:Lucida Sans;font-weight:bold;text-decoration:none;color:black;'
+                           href='javascript:stop();'> Stop </a></td>
+                    <td> 
+                        <audio id='lcwoplayer' controls style='width:200px;height:28px' autobuffer
+                               onended=javascript:stop();>
+                            <source id="mp3src" type="audio/mp3"
+                                    src="http://cgi2.lcwo.net/cgi-bin/cw.mp3?s=15&e=15&f=800&t=vvv">
+                            Erro: Tag HTML5
+                            <audio> falhou :-(</audio>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <script>
+            function playpause() {
+                var p = document.getElementById('lcwoplayer');
+                if (p.paused) {
+                    p.play();
+                } else {
+                    p.pause();
+                }
+            }
+
+            function stop() {
+                var p = document.getElementById('lcwoplayer');
+                p.pause();
+                p.currentTime = 0;
+            }
+
+            function limpa() {
+                document.getElementById('texto').value = '';
+                document.getElementById('texto').focus();
+            }
+
+            function reseta() {
+                document.getElementById('speed').selectedIndex = 0;
+                document.getElementById('eff').selectedIndex = 0;
+                document.getElementById('freq').selectedIndex = 4;
+            }
+
+            function esconde() {
+                document.getElementById('result').style.display = 'none'
+            }
+
+            function iguala() {
+                document.getElementById('eff').selectedIndex = document.getElementById('speed').selectedIndex;
+            }
+
+            function mostra() {
+                document.getElementById('result').style.display = 'block'
+            }
+
+            function executa() {
+                mostra();
+                var p = document.getElementById('lcwoplayer');
+                var s = document.getElementById('mp3src');
+                var vel = document.getElementById('speed').value;
+                var efet = document.getElementById('eff').value;
+                var frequ = document.getElementById('freq').value;
+                var txt = document.getElementById('texto').value;
+                s.src = "http://cgi2.lcwo.net/cgi-bin/cw.mp3?s=" + vel + "&e=" + efet + "&f=" + frequ + "&t=" + txt;
+                p.load();
+            }
+
+            var script = document.body.appendChild(document.createElement("script"));
+            script.onerror = function () {
+                alert("Erro: Acesso à engine falhou no teste inicial");
+            };
+            script.src = "http://cgi2.lcwo.net/cgi-bin/cw.mp3";
+        </script></body>
+</html>
+
